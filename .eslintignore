@@ -1,0 +1,5 @@
+*.md
+src/content/**/*.md
+node_modules/
+dist/
+.astro/

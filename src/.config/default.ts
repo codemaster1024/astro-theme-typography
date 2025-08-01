@@ -5,29 +5,30 @@ import type { ThemeConfig } from '~/types'
 
 export const defaultConfig: ThemeConfig = {
   site: {
-    title: '活版印字',
-    subtitle: 'Typography',
-    author: 'Moeyua',
-    description: 'Rediscory the beauty of typography',
-    website: 'https://astro-theme-typography.vercel.app/',
+    title: '王同学',
+    subtitle: 'wangtopia',
+    author: '王同学',
+    description: '做一个写字的人',
+    website: 'https://wangtopia.top/',
     pageSize: 5,
     socialLinks: [
       {
         name: 'github',
-        href: 'https://github.com/moeyua/astro-theme-typography',
+        href: 'https://github.com/codemaster1024',
       },
       {
         name: 'rss',
         href: '/atom.xml',
       },
-      {
-        name: 'twitter',
-        href: 'https://github.com/moeyua/astro-theme-typography',
-      },
-      {
-        name: 'mastodon',
-        href: 'https://github.com/moeyua/astro-theme-typography',
-      },
+      // {
+      //   name: 'twitter',
+      //   href: 'https://github.com/moeyua/astro-theme-typography',
+      // },
+      // {
+      //   name: 'mastodon',
+      //   href: 'https://github.com/moeyua/astro-theme-typography',
+      // },
+      
     ],
     navLinks: [
       {
@@ -43,15 +44,18 @@ export const defaultConfig: ThemeConfig = {
         href: '/categories',
       },
       {
+        name: 'Gallery',
+        href: 'https://photo.wangtopia.top',
+      },
+      {
         name: 'About',
         href: '/about',
       },
     ],
-    categoryMap: [{ name: '胡适', path: 'hu-shi' }],
+    categoryMap: [{ name: '王同学', path: 'wangtongxue' }],
     footer: [
       '© %year <a target="_blank" href="%website">%author</a>',
-      'Theme <a target="_blank" href="https://github.com/Moeyua/astro-theme-typography">Typography</a> by <a target="_blank" href="https://moeyua.com">Moeyua</a>',
-      'Proudly published with <a target="_blank" href="https://astro.build/">Astro</a>',
+      '做一个写字的人',
     ],
   },
   appearance: {
