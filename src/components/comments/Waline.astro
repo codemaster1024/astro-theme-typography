@@ -15,15 +15,21 @@ const walineConfig = {
 <div id="waline"></div>
 <script is:inline src="https://unpkg.com/@waline/client@v3/dist/waline.umd.js"></script>
 <script is:inline define:vars={{ config: walineConfig }}>
-  window.addEventListener('load', function() {
+  function initWaline() {
     if (typeof window.Waline !== 'undefined') {
       window.Waline.init(config)
     } else if (typeof Waline !== 'undefined') {
       Waline.init(config)
     } else {
-      console.error('Waline is not loaded')
+      setTimeout(initWaline, 100)
     }
-  })
+  }
+  
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initWaline)
+  } else {
+    initWaline()
+  }
 </script>
 
 <link rel="stylesheet" href="https://unpkg.com/@waline/client@v3/dist/waline.css" />
