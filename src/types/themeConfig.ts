@@ -1,4 +1,4 @@
-import type { Link, Meta } from 'astro-seo'
+// import type { Link, Meta } from 'astro-seo'
 import type {
   AvailableLanguage,
   BooleanString,
@@ -49,14 +49,15 @@ export interface ConfigAppearance {
 
 export interface ConfigSEO {
   twitter: string
-  meta: Partial<Meta>[]
-  link: Partial<Link>[]
+  meta: Partial<any>[]
+  link: Partial<any>[]
 }
 
 export interface ConfigComment {
   disqus: Disqus
   giscus: Giscus
   twikoo: Twikoo
+  waline: Waline
 }
 
 export interface ConfigRSS {
@@ -112,4 +113,24 @@ interface Giscus {
   theme: Theme
   lang: AvailableLanguage
   loading: Loading
+}
+
+interface Waline {
+  serverURL: string
+  lang?: string
+  locale?: object
+  emoji?: string[]
+  dark?: string
+  meta?: string[]
+  requiredMeta?: string[]
+  login?: string
+  avatar?: string
+  avatarCDN?: string
+  avatarForce?: boolean
+  visitor?: boolean
+  highlight?: boolean
+  mathTagSupport?: boolean
+  commentSorting?: string
+  copyright?: boolean
+  imageUploader?: Function
 }

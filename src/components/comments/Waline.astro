@@ -1,0 +1,126 @@
+---
+import { themeConfig } from '~/.config'
+
+interface Props {
+  path: string
+}
+
+const walineConfig = {
+  ...themeConfig.comment?.waline,
+  el: '#waline',
+  path: Astro.props.path,
+}
+---
+
+<div id="waline"></div>
+<script is:inline src="https://unpkg.com/@waline/client@v3/dist/waline.umd.js"></script>
+<script is:inline define:vars={{ config: walineConfig }}>
+  window.addEventListener('load', function() {
+    if (typeof window.Waline !== 'undefined') {
+      window.Waline.init(config)
+    } else if (typeof Waline !== 'undefined') {
+      Waline.init(config)
+    } else {
+      console.error('Waline is not loaded')
+    }
+  })
+</script>
+
+<link rel="stylesheet" href="https://unpkg.com/@waline/client@v3/dist/waline.css" />
+
+<style is:global>
+  #waline {
+    max-width: none;
+  }
+  
+  .wl-container {
+    font-family: inherit;
+  }
+  
+  .wl-card {
+    border: 1px solid #e1e5e9;
+    border-radius: 8px;
+    background-color: #fff;
+    margin-bottom: 16px;
+  }
+  
+  .wl-input {
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    padding: 8px 12px;
+    font-size: 14px;
+    line-height: 1.5;
+    background-color: #fff;
+  }
+  
+  .wl-input:focus {
+    border-color: #4285f4;
+    outline: none;
+  }
+  
+  .wl-editor {
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    min-height: 120px;
+  }
+  
+  .wl-panel {
+    border-top: 1px solid #f0f0f0;
+    padding: 8px 16px;
+  }
+  
+  .wl-btn {
+    background-color: #4285f4;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    padding: 8px 16px;
+    cursor: pointer;
+    font-size: 14px;
+  }
+  
+  .wl-btn:hover {
+    background-color: #3367d6;
+  }
+  
+  .wl-comment {
+    border-bottom: 1px solid #f0f0f0;
+    padding: 16px 0;
+  }
+  
+  .wl-comment:last-child {
+    border-bottom: none;
+  }
+  
+  .wl-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+  }
+  
+  .wl-meta {
+    font-size: 12px;
+    color: #666;
+  }
+  
+  .wl-content {
+    margin-top: 8px;
+    line-height: 1.6;
+  }
+  
+  /* Dark mode support */
+  [data-theme="dark"] .wl-card,
+  [data-theme="dark"] .wl-input {
+    background-color: #2d2d2d;
+    border-color: #444;
+    color: #fff;
+  }
+  
+  [data-theme="dark"] .wl-btn {
+    background-color: #0084ff;
+  }
+  
+  [data-theme="dark"] .wl-btn:hover {
+    background-color: #0066cc;
+  }
+</style>

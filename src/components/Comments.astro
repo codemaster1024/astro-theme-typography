@@ -4,6 +4,7 @@ import type { Post } from '~/types'
 import Disqus from '~/components/comments/Disqus.astro'
 import Giscus from '~/components/comments/Giscus.astro'
 import Twikoo from '~/components/comments/Twikoo.astro'
+import Waline from '~/components/comments/Waline.astro'
 
 interface Props {
   post: Post
@@ -28,6 +29,7 @@ function getProvider() {
       {provider === 'disqus' && <Disqus identifier={id} url={url} title={data.title} />}
       {provider === 'giscus' && <Giscus />}
       {provider === 'twikoo' && <Twikoo path={path} />}
+      {provider === 'waline' && <Waline path={path} />}
     </div>
   )
 }
