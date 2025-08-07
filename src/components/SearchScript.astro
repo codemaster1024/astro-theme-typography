@@ -1,0 +1,397 @@
+---
+// Search functionality script component
+---
+
+<script>
+  interface SearchResult {
+    id: string
+    slug: string
+    title: string
+    description: string
+    content: string
+    categories: string[]
+    pubDate: string
+    url: string
+  }
+
+  class SearchManager {
+    private searchIndex: SearchResult[] = []
+    private isLoading = false
+    private currentQuery = ''
+    private selectedIndex = -1
+    private modal: HTMLElement | null = null
+    private input: HTMLInputElement | null = null
+    private resultsContainer: HTMLElement | null = null
+    private abortController: AbortController | null = null
+
+    constructor() {
+      this.init()
+    }
+
+    private init() {
+      // Wait for DOM to be ready
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', () => this.setupEventListeners())
+      } else {
+        this.setupEventListeners()
+      }
+    }
+
+    private setupEventListeners() {
+      this.modal = document.getElementById('search-modal')
+      this.input = document.getElementById('search-input') as HTMLInputElement
+      this.resultsContainer = document.getElementById('search-results')
+
+      if (!this.modal || !this.input || !this.resultsContainer) {
+        console.warn('Search components not found')
+        return
+      }
+
+      // Keyboard shortcuts
+      document.addEventListener('keydown', (e) => {
+        // Ctrl+K or Cmd+K or / to open search
+        if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+          e.preventDefault()
+          this.openModal()
+        } else if (e.key === '/' && !this.isInputFocused()) {
+          e.preventDefault()
+          this.openModal()
+        }
+        // ESC to close
+        else if (e.key === 'Escape' && this.isModalOpen()) {
+          this.closeModal()
+        }
+        // Navigation when modal is open
+        else if (this.isModalOpen() && this.hasResults()) {
+          if (e.key === 'ArrowDown') {
+            e.preventDefault()
+            this.navigateDown()
+          } else if (e.key === 'ArrowUp') {
+            e.preventDefault()
+            this.navigateUp()
+          } else if (e.key === 'Enter') {
+            e.preventDefault()
+            this.selectResult()
+          }
+        }
+      })
+
+      // Search input
+      this.input.addEventListener('input', (e) => {
+        const target = e.target as HTMLInputElement
+        this.handleSearch(target.value)
+      })
+
+      // Close modal clicks
+      const closeButtons = this.modal.querySelectorAll('[data-search-close]')
+      closeButtons.forEach(button => {
+        button.addEventListener('click', () => this.closeModal())
+      })
+
+      // Result clicks
+      this.resultsContainer.addEventListener('click', (e) => {
+        const resultElement = (e.target as Element).closest('.search-result')
+        if (resultElement) {
+          const url = resultElement.getAttribute('href')
+          if (url) {
+            this.closeModal()
+            window.location.href = url
+          }
+        }
+      })
+
+      // Load search index
+      this.loadSearchIndex()
+    }
+
+    private async loadSearchIndex() {
+      if (this.isLoading || this.searchIndex.length > 0) return
+
+      this.isLoading = true
+      this.showLoading()
+
+      try {
+        this.abortController = new AbortController()
+        const response = await fetch('/search-index.json', {
+          signal: this.abortController.signal
+        })
+        
+        if (!response.ok) {
+          throw new Error('Failed to fetch search index')
+        }
+        
+        this.searchIndex = await response.json()
+      } catch (error) {
+        if (error instanceof Error && error.name === 'AbortError') {
+          return
+        }
+        console.error('Failed to load search index:', error)
+      } finally {
+        this.isLoading = false
+        this.hideLoading()
+      }
+    }
+
+    private async handleSearch(query: string) {
+      this.currentQuery = query.trim()
+      this.selectedIndex = -1
+
+      if (!this.currentQuery) {
+        this.showEmptyState()
+        return
+      }
+
+      if (this.isLoading) {
+        this.showLoading()
+        return
+      }
+
+      if (this.searchIndex.length === 0) {
+        await this.loadSearchIndex()
+        if (this.currentQuery !== query.trim()) return // Query changed while loading
+      }
+
+      const results = this.searchPosts(this.currentQuery)
+      this.displayResults(results)
+    }
+
+    private searchPosts(query: string): SearchResult[] {
+      const searchTerms = query.toLowerCase().split(/\s+/).filter(term => term.length > 0)
+      
+      if (searchTerms.length === 0) return []
+
+      return this.searchIndex
+        .map(post => ({
+          ...post,
+          score: this.calculateRelevanceScore(post, searchTerms)
+        }))
+        .filter(post => post.score > 0)
+        .sort((a, b) => b.score - a.score)
+        .slice(0, 10) // Limit to top 10 results
+    }
+
+    private calculateRelevanceScore(post: SearchResult, searchTerms: string[]): number {
+      let score = 0
+      const titleLower = post.title.toLowerCase()
+      const contentLower = (post.content + ' ' + post.description).toLowerCase()
+      const categoriesLower = post.categories.join(' ').toLowerCase()
+
+      searchTerms.forEach(term => {
+        // Title matches (highest weight)
+        if (titleLower.includes(term)) {
+          score += titleLower === term ? 100 : 50
+        }
+        
+        // Category matches (high weight)
+        if (categoriesLower.includes(term)) {
+          score += 30
+        }
+        
+        // Content matches (lower weight)
+        const contentMatches = (contentLower.match(new RegExp(term, 'g')) || []).length
+        score += contentMatches * 5
+      })
+
+      return score
+    }
+
+    private displayResults(results: SearchResult[]) {
+      if (!this.resultsContainer) return
+
+      if (results.length === 0) {
+        this.showNoResults()
+        return
+      }
+
+      this.hideAllStates()
+      this.resultsContainer.style.display = 'block'
+      
+      this.resultsContainer.innerHTML = results
+        .map((result, index) => this.renderResult(result, index))
+        .join('')
+
+      // Update ARIA
+      this.resultsContainer.setAttribute('role', 'listbox')
+    }
+
+    private renderResult(result: SearchResult, index: number): string {
+      const date = new Date(result.pubDate).toLocaleDateString('zh-CN')
+      const highlightedTitle = this.highlightText(result.title, this.currentQuery)
+      const highlightedContent = this.highlightText(result.content, this.currentQuery, 150)
+      
+      const categories = result.categories
+        .map(cat => `<span class="search-result-category">${cat}</span>`)
+        .join('')
+
+      return `
+        <a href="${result.url}" 
+           class="search-result not-underline-hover" 
+           data-index="${index}" 
+           role="option"
+           style="display: block !important; 
+                  padding: 1.25rem 1.5rem !important; 
+                  border: 2px solid #e2e8f0 !important; 
+                  border-radius: 12px !important; 
+                  margin-bottom: 16px !important; 
+                  background: #ffffff !important; 
+                  box-shadow: 0 2px 8px 0 rgba(0, 0, 0, 0.12) !important; 
+                  text-decoration: none !important;
+                  transition: all 0.2s ease !important;">
+          <div class="search-result-title">${highlightedTitle}</div>
+          <div class="search-result-meta">
+            <span class="search-result-date">${date}</span>
+            ${categories ? `<div class="search-result-categories">${categories}</div>` : ''}
+          </div>
+          <div class="search-result-content">${highlightedContent}</div>
+        </a>
+      `
+    }
+
+    private highlightText(text: string, query: string, maxLength?: number): string {
+      if (!query) return maxLength ? text.substring(0, maxLength) : text
+
+      let processedText = text
+      if (maxLength && text.length > maxLength) {
+        // Try to find query in text and center the excerpt around it
+        const queryIndex = text.toLowerCase().indexOf(query.toLowerCase())
+        if (queryIndex !== -1) {
+          const start = Math.max(0, queryIndex - Math.floor(maxLength / 2))
+          const end = Math.min(text.length, start + maxLength)
+          processedText = text.substring(start, end)
+          if (start > 0) processedText = '...' + processedText
+          if (end < text.length) processedText = processedText + '...'
+        } else {
+          processedText = text.substring(0, maxLength) + '...'
+        }
+      }
+
+      // Highlight search terms
+      const searchTerms = query.toLowerCase().split(/\s+/).filter(term => term.length > 0)
+      let highlightedText = processedText
+
+      searchTerms.forEach(term => {
+        const regex = new RegExp(`(${term})`, 'gi')
+        highlightedText = highlightedText.replace(regex, '<span class="search-highlight">$1</span>')
+      })
+
+      return highlightedText
+    }
+
+    private navigateDown() {
+      const results = this.resultsContainer?.querySelectorAll('.search-result')
+      if (!results || results.length === 0) return
+
+      this.selectedIndex = (this.selectedIndex + 1) % results.length
+      this.updateSelection(results)
+    }
+
+    private navigateUp() {
+      const results = this.resultsContainer?.querySelectorAll('.search-result')
+      if (!results || results.length === 0) return
+
+      this.selectedIndex = this.selectedIndex <= 0 ? results.length - 1 : this.selectedIndex - 1
+      this.updateSelection(results)
+    }
+
+    private updateSelection(results: NodeListOf<Element>) {
+      results.forEach((result, index) => {
+        result.classList.toggle('highlighted', index === this.selectedIndex)
+      })
+
+      // Update ARIA
+      if (this.selectedIndex >= 0 && this.input) {
+        this.input.setAttribute('aria-activedescendant', `search-result-${this.selectedIndex}`)
+      }
+    }
+
+    private selectResult() {
+      const selectedResult = this.resultsContainer?.querySelector('.search-result.highlighted') as HTMLAnchorElement
+      if (selectedResult) {
+        this.closeModal()
+        window.location.href = selectedResult.href
+      }
+    }
+
+    private openModal() {
+      if (!this.modal || !this.input) return
+
+      this.modal.setAttribute('aria-hidden', 'false')
+      document.body.style.overflow = 'hidden'
+      
+      // Focus input after animation
+      setTimeout(() => {
+        this.input?.focus()
+      }, 100)
+
+      // Load index if not loaded
+      if (this.searchIndex.length === 0) {
+        this.loadSearchIndex()
+      }
+    }
+
+    private closeModal() {
+      if (!this.modal || !this.input) return
+
+      this.modal.setAttribute('aria-hidden', 'true')
+      document.body.style.overflow = ''
+      this.input.value = ''
+      this.currentQuery = ''
+      this.selectedIndex = -1
+      this.showEmptyState()
+
+      // Abort any ongoing requests
+      if (this.abortController) {
+        this.abortController.abort()
+        this.abortController = null
+      }
+    }
+
+    private showLoading() {
+      this.hideAllStates()
+      const loading = document.getElementById('search-loading')
+      if (loading) loading.style.display = 'flex'
+    }
+
+    private hideLoading() {
+      const loading = document.getElementById('search-loading')
+      if (loading) loading.style.display = 'none'
+    }
+
+    private showEmptyState() {
+      this.hideAllStates()
+      const empty = document.getElementById('search-empty')
+      if (empty) empty.style.display = 'flex'
+    }
+
+    private showNoResults() {
+      this.hideAllStates()
+      const noResults = document.getElementById('search-no-results')
+      if (noResults) noResults.style.display = 'flex'
+    }
+
+    private hideAllStates() {
+      const states = ['search-loading', 'search-empty', 'search-no-results', 'search-results']
+      states.forEach(id => {
+        const element = document.getElementById(id)
+        if (element) element.style.display = 'none'
+      })
+    }
+
+    private isModalOpen(): boolean {
+      return this.modal?.getAttribute('aria-hidden') === 'false'
+    }
+
+    private isInputFocused(): boolean {
+      return document.activeElement?.tagName === 'INPUT' || 
+             document.activeElement?.tagName === 'TEXTAREA' ||
+             document.activeElement?.getAttribute('contenteditable') === 'true'
+    }
+
+    private hasResults(): boolean {
+      return (this.resultsContainer?.children.length || 0) > 0
+    }
+  }
+
+  // Initialize search when script loads
+  new SearchManager()
+</script>

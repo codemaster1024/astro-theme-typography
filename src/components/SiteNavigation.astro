@@ -16,6 +16,16 @@ const { translate: t } = Astro.locals
         </li>
       ))
     }
+    <li>
+      <button 
+        id="search-trigger"
+        class="search-trigger"
+        aria-label="打开搜索"
+        onclick="document.getElementById('search-modal').setAttribute('aria-hidden', 'false'); document.body.style.overflow = 'hidden'; setTimeout(() => document.getElementById('search-input').focus(), 100);"
+      >
+        搜索
+      </button>
+    </li>
   </ul>
   <ul flex="~ row gap-1 justify-center">
     {
@@ -29,3 +39,19 @@ const { translate: t } = Astro.locals
     }
   </ul>
 </nav>
+
+<style>
+  .search-trigger {
+    background: none;
+    border: none;
+    font: inherit;
+    color: inherit;
+    cursor: pointer;
+    text-decoration: none;
+    transition: opacity 0.2s;
+  }
+  
+  .search-trigger:hover {
+    opacity: 0.7;
+  }
+</style>
