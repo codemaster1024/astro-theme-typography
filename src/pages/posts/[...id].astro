@@ -1,6 +1,7 @@
 ---
 import type { GetStaticPaths, InferGetStaticPropsType } from 'astro'
 import Comments from '~/components/Comments.astro'
+import Donation from '~/components/Donation.astro'
 import Pagination from '~/components/Pagination.astro'
 import SiteSeo from '~/components/SiteSeo.astro'
 import LayoutDefault from '~/layouts/LayoutDefault.astro'
@@ -48,6 +49,13 @@ function getUrl(id: string) {
     rightUrl={getUrl(next?.id)}
     showPageCount={false}
   />
+  
+  <Donation 
+    wechatQR="/placeholder.png"
+    alipayQR="/placeholder.png"
+    message="觉得有帮助？"
+  />
+  
   <!-- BUG 这里使用 client:visible 会导致构建失败。ref: https://github.com/withastro/astro/issues/7329 -->
   <Comments post={entry} />
 </LayoutDefault>

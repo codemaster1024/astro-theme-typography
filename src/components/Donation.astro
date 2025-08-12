@@ -1,0 +1,147 @@
+---
+interface Props {
+  wechatQR?: string
+  alipayQR?: string
+  message?: string
+}
+
+const { wechatQR, alipayQR, message = "觉得有帮助？" } = Astro.props
+---
+
+{(wechatQR || alipayQR) && (
+  <div class="donation-container">
+    <button class="donation-toggle" id="donationToggle">
+      <span class="donation-text">{message}</span>
+      <span class="donation-icon">☕</span>
+      <span class="toggle-arrow">▼</span>
+    </button>
+    <div class="donation-content" id="donationContent">
+      <div class="donation-qr-codes">
+        {wechatQR && (
+          <div class="qr-code-item">
+            <img src={wechatQR} alt="微信赞赏码" />
+            <span>微信</span>
+          </div>
+        )}
+        {alipayQR && (
+          <div class="qr-code-item">
+            <img src={alipayQR} alt="支付宝赞赏码" />
+            <span>支付宝</span>
+          </div>
+        )}
+      </div>
+    </div>
+  </div>
+)}
+
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    const toggle = document.getElementById('donationToggle')
+    const content = document.getElementById('donationContent')
+    const arrow = toggle?.querySelector('.toggle-arrow')
+    
+    toggle?.addEventListener('click', () => {
+      const isHidden = content?.style.display === 'none' || !content?.style.display
+      
+      if (content) {
+        content.style.display = isHidden ? 'block' : 'none'
+      }
+      
+      if (arrow) {
+        arrow.textContent = isHidden ? '▲' : '▼'
+      }
+    })
+  })
+</script>
+
+<style>
+  .donation-container {
+    margin: 1.5rem 0;
+    border: 1px solid var(--c-border);
+    border-radius: 6px;
+    background: var(--c-bg-soft);
+    overflow: hidden;
+  }
+
+  .donation-toggle {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1rem;
+    background: none;
+    border: none;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+    font-size: 0.9rem;
+    color: var(--c-text-light);
+  }
+
+  .donation-toggle:hover {
+    background: var(--c-bg);
+  }
+
+  .donation-text {
+    color: var(--c-text);
+  }
+
+  .donation-icon {
+    font-size: 1rem;
+  }
+
+  .toggle-arrow {
+    font-size: 0.8rem;
+    margin-left: auto;
+    transition: transform 0.2s ease;
+  }
+
+  .donation-content {
+    display: none;
+    padding: 1rem;
+    border-top: 1px solid var(--c-border);
+    background: var(--c-bg);
+  }
+
+  .donation-qr-codes {
+    display: flex;
+    justify-content: center;
+    gap: 1.5rem;
+    flex-wrap: wrap;
+  }
+
+  .qr-code-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .qr-code-item img {
+    width: 120px;
+    height: 120px;
+    border-radius: 6px;
+    border: 1px solid var(--c-border);
+  }
+
+  .qr-code-item span {
+    color: var(--c-text-light);
+    font-size: 0.85rem;
+  }
+
+  @media (max-width: 640px) {
+    .qr-code-item img {
+      width: 100px;
+      height: 100px;
+    }
+
+    .donation-qr-codes {
+      gap: 1rem;
+    }
+
+    .donation-toggle {
+      padding: 0.6rem 0.8rem;
+      font-size: 0.85rem;
+    }
+  }
+</style>
