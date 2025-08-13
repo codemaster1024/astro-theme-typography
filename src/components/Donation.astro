@@ -19,13 +19,13 @@ const { wechatQR, alipayQR, message = "觉得有帮助？" } = Astro.props
       <div class="donation-qr-codes">
         {wechatQR && (
           <div class="qr-code-item">
-            <img src={wechatQR} alt="微信赞赏码" />
+            <img src={wechatQR} alt="微信赞赏码" class="qr-image" />
             <span>微信</span>
           </div>
         )}
         {alipayQR && (
           <div class="qr-code-item">
-            <img src={alipayQR} alt="支付宝赞赏码" />
+            <img src={alipayQR} alt="支付宝赞赏码" class="qr-image" />
             <span>支付宝</span>
           </div>
         )}
@@ -35,13 +35,20 @@ const { wechatQR, alipayQR, message = "觉得有帮助？" } = Astro.props
 )}
 
 <script>
-  document.addEventListener('DOMContentLoaded', () => {
+  // 确保在页面完全加载后再执行
+  function initDonation() {
     const toggle = document.getElementById('donationToggle')
     const content = document.getElementById('donationContent')
     const arrow = toggle?.querySelector('.toggle-arrow')
     
-    toggle?.addEventListener('click', () => {
-      const isHidden = content?.style.display === 'none' || !content?.style.display
+    if (!toggle || !content) {
+      // 如果元素还没加载，延迟重试
+      setTimeout(initDonation, 100)
+      return
+    }
+    
+    toggle.addEventListener('click', () => {
+      const isHidden = content.style.display === 'none' || !content.style.display
       
       if (content) {
         content.style.display = isHidden ? 'block' : 'none'
@@ -50,8 +57,114 @@ const { wechatQR, alipayQR, message = "觉得有帮助？" } = Astro.props
       if (arrow) {
         arrow.textContent = isHidden ? '▲' : '▼'
       }
+
+      // 展开后添加二维码点击事件
+      if (isHidden) {
+        setTimeout(() => {
+          addQRClickEvents()
+        }, 100)
+      }
     })
-  })
+
+    // 初始添加事件（如果已经展开的话）
+    addQRClickEvents()
+  }
+
+  // 多种方式确保初始化
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initDonation)
+  } else {
+    initDonation()
+  }
+  
+  // Astro页面路由切换时也需要重新初始化
+  document.addEventListener('astro:page-load', initDonation)
+
+  function addQRClickEvents() {
+    const qrImages = document.querySelectorAll('.qr-image') as NodeListOf<HTMLImageElement>
+    qrImages.forEach(img => {
+      img.onclick = () => {
+        showQRModal(img.src, img.alt)
+      }
+    })
+  }
+
+  function showQRModal(src: string, alt: string) {
+    
+    // 清除已存在的模态框
+    const existingModal = document.querySelector('.qr-modal')
+    if (existingModal) {
+      document.body.removeChild(existingModal)
+    }
+
+    // 创建模态框
+    const modal = document.createElement('div')
+    modal.className = 'qr-modal'
+    modal.style.cssText = `
+      position: fixed !important;
+      top: 0 !important;
+      left: 0 !important;
+      width: 100vw !important;
+      height: 100vh !important;
+      background: rgba(0, 0, 0, 0.85) !important;
+      display: flex !important;
+      justify-content: center !important;
+      align-items: center !important;
+      z-index: 9999 !important;
+    `
+    
+    modal.innerHTML = `
+      <div class="qr-modal-content" style="
+        background: white !important;
+        padding: 2rem !important;
+        border-radius: 12px !important;
+        text-align: center !important;
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3) !important;
+      ">
+        <img src="${src}" alt="${alt}" style="
+          width: 280px !important;
+          height: 280px !important;
+          border-radius: 8px !important;
+          margin-bottom: 1rem !important;
+        " />
+        <p style="margin: 1rem 0 !important; font-size: 1.1rem !important;">${alt}</p>
+        <button class="qr-modal-close" style="
+          background: #007acc !important;
+          color: white !important;
+          border: none !important;
+          padding: 0.75rem 1.5rem !important;
+          border-radius: 6px !important;
+          cursor: pointer !important;
+        ">关闭</button>
+      </div>
+    `
+    
+    document.body.appendChild(modal)
+    document.body.style.overflow = 'hidden'
+    
+    // 关闭功能
+    const closeBtn = modal.querySelector('.qr-modal-close')
+    const closeModal = () => {
+      if (document.body.contains(modal)) {
+        document.body.removeChild(modal)
+      }
+      document.body.style.overflow = ''
+    }
+    
+    closeBtn?.addEventListener('click', closeModal)
+    modal.addEventListener('click', (e) => {
+      if (e.target === modal) closeModal()
+    })
+    
+    // ESC 键关闭
+    const handleEsc = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        closeModal()
+        document.removeEventListener('keydown', handleEsc)
+      }
+    }
+    document.addEventListener('keydown', handleEsc)
+  }
 </script>
 
 <style>
@@ -118,10 +231,17 @@ const { wechatQR, alipayQR, message = "觉得有帮助？" } = Astro.props
   }
 
   .qr-code-item img {
-    width: 120px;
-    height: 120px;
+    width: 140px;
+    height: 140px;
     border-radius: 6px;
     border: 1px solid var(--c-border);
+    cursor: pointer;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+  }
+
+  .qr-code-item img:hover {
+    transform: scale(1.05);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
   }
 
   .qr-code-item span {
@@ -129,10 +249,68 @@ const { wechatQR, alipayQR, message = "觉得有帮助？" } = Astro.props
     font-size: 0.85rem;
   }
 
+  /* 模态框样式 */
+  .qr-modal {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 100vw !important;
+    height: 100vh !important;
+    background: rgba(0, 0, 0, 0.85) !important;
+    display: flex !important;
+    justify-content: center !important;
+    align-items: center !important;
+    z-index: 9999 !important;
+    backdrop-filter: blur(4px) !important;
+  }
+
+  .qr-modal-content {
+    background: var(--c-bg) !important;
+    padding: 2rem !important;
+    border-radius: 12px !important;
+    border: 1px solid var(--c-border) !important;
+    text-align: center !important;
+    max-width: 90vw !important;
+    max-height: 90vh !important;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3) !important;
+    position: relative !important;
+  }
+
+  .qr-modal-content img {
+    width: 280px !important;
+    height: 280px !important;
+    border-radius: 8px !important;
+    border: 1px solid var(--c-border) !important;
+    margin-bottom: 1rem !important;
+    display: block !important;
+  }
+
+  .qr-modal-content p {
+    color: var(--c-text) !important;
+    margin: 1rem 0 !important;
+    font-size: 1.1rem !important;
+    font-weight: 500 !important;
+  }
+
+  .qr-modal-close {
+    background: var(--c-brand) !important;
+    color: white !important;
+    border: none !important;
+    padding: 0.75rem 1.5rem !important;
+    border-radius: 6px !important;
+    cursor: pointer !important;
+    font-size: 0.9rem !important;
+    transition: background-color 0.2s ease !important;
+  }
+
+  .qr-modal-close:hover {
+    background: var(--c-brand-light) !important;
+  }
+
   @media (max-width: 640px) {
     .qr-code-item img {
-      width: 100px;
-      height: 100px;
+      width: 120px;
+      height: 120px;
     }
 
     .donation-qr-codes {
@@ -142,6 +320,16 @@ const { wechatQR, alipayQR, message = "觉得有帮助？" } = Astro.props
     .donation-toggle {
       padding: 0.6rem 0.8rem;
       font-size: 0.85rem;
+    }
+
+    .qr-modal-content {
+      padding: 1.5rem;
+      margin: 1rem;
+    }
+
+    .qr-modal-content img {
+      width: 240px;
+      height: 240px;
     }
   }
 </style>
