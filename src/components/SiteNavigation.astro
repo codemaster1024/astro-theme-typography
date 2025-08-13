@@ -23,7 +23,7 @@ const { translate: t } = Astro.locals
         aria-label="打开搜索"
         onclick="document.getElementById('search-modal').setAttribute('aria-hidden', 'false'); document.body.style.overflow = 'hidden'; setTimeout(() => document.getElementById('search-input').focus(), 100);"
       >
-        搜索
+        <span class="i-mdi-magnify w-6 h-6"></span>
       </button>
     </li>
   </ul>
@@ -49,6 +49,9 @@ const { translate: t } = Astro.locals
     cursor: pointer;
     text-decoration: none;
     transition: opacity 0.2s;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
   }
   
   .search-trigger:hover {
